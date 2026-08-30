@@ -2,7 +2,7 @@
 
 Obrigado por testares a app!
 
-**Link:** [https://poemas-silk.vercel.app](https://poemas-silk.vercel.app)
+**Link:** [https://mipoetry.vercel.app](https://mipoetry.vercel.app)
 
 ## Entrar na app
 

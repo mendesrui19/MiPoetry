@@ -2,7 +2,7 @@
 
 App mobile-first para escrever, partilhar e descobrir poesia. Funciona como PWA instalável no telemóvel.
 
-**Beta pública:** [https://poemas-silk.vercel.app](https://poemas-silk.vercel.app) · **Repo:** [github.com/mendesrui19/MiPoetry](https://github.com/mendesrui19/MiPoetry)
+**Beta pública:** [https://mipoetry.vercel.app](https://mipoetry.vercel.app) · **Repo:** [github.com/mendesrui19/MiPoetry](https://github.com/mendesrui19/MiPoetry)
 
 Guia para testadores: [BETA.md](./BETA.md)
 
@@ -47,7 +47,7 @@ No Safari (iOS) ou Chrome (Android): **Adicionar ao ecrã inicial**.
 
 ## Deploy (Vercel)
 
-O projeto está em produção em **https://poemas-silk.vercel.app**.
+O projeto está em produção em **https://mipoetry.vercel.app**.
 
 Variáveis de ambiente necessárias — ver `.env.example`.
 
