@@ -11,7 +11,7 @@ Guia para testadores: [BETA.md](./BETA.md)
 ### Escrita
 - **Editor minimalista** — tipografia clássica ou máquina de escrever, fundo claro/escuro/pergaminho
 - **Auto-save** — rascunhos guardados automaticamente
-- **Privacidade** — Público, Amigos ou Privado
+- **Privacidade** — Público, Seguidores ou Privado
 
 ### Feed e Descoberta
 - **Feed** — poemas dos autores que segues

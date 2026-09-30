@@ -36,6 +36,11 @@ export default function FeedPage() {
             <h1 className="font-display text-lg font-bold tracking-tight text-ink">
               {user ? "A Seguir" : "Feed"}
             </h1>
+            {user && (
+              <p className="text-[11px] text-ink-dim mt-0.5 max-w-[14rem] leading-snug">
+                Poemas de quem segues. Toda a comunidade está em Descobrir.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Link href="/search" className="p-2 rounded-xl text-ink-muted hover:bg-surface-up" aria-label="Descobrir">

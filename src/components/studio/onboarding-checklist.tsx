@@ -7,9 +7,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "mipoetry-onboarding-v2-done";
+const DISCOVER_VISIT_KEY = "mipoetry-visited-discover";
 
 export function OnboardingChecklist() {
   const [dismissed, setDismissed] = useState(true);
+  const [visitedDiscover, setVisitedDiscover] = useState(false);
   const currentUserId = useStore((s) => s.currentUserId);
   const follows = useStore((s) => s.follows);
   const drafts = useStore((s) => s.drafts);
@@ -18,6 +20,7 @@ export function OnboardingChecklist() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     setDismissed(Boolean(localStorage.getItem(STORAGE_KEY)));
+    setVisitedDiscover(Boolean(localStorage.getItem(DISCOVER_VISIT_KEY)));
   }, []);
 
   const steps = useMemo(() => {
@@ -40,12 +43,12 @@ export function OnboardingChecklist() {
       },
       {
         id: "discover",
-        label: "Ver o desafio da semana",
-        done: hasPublished,
+        label: "Explorar Descobrir",
+        done: visitedDiscover,
         href: "/search",
       },
     ];
-  }, [currentUserId, follows, drafts, poems]);
+  }, [currentUserId, follows, drafts, poems, visitedDiscover]);
 
   const allDone = steps.length > 0 && steps.every((s) => s.done);
   const doneCount = steps.filter((s) => s.done).length;

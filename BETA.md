@@ -17,7 +17,7 @@ Obrigado por testares a app!
 | Área | O que fazer |
 |------|-------------|
 | **Registo / login** | Criar conta nova, sair e voltar a entrar |
-| **Escrever** | Novo poema, rascunho, publicar (Público / Amigos / Privado) |
+| **Escrever** | Novo poema, rascunho, publicar (Público / Seguidores / Privado) |
 | **Feed** | Ver poemas de quem segues (tab Feed) |
 | **Descobrir** | Antologias, hashtags, poemas em destaque |
 | **Perfil** | Editar bio, avatar, ver os teus poemas e rascunhos |

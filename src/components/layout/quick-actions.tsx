@@ -1,12 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { BookOpen, Bookmark, FileText, PenLine } from "lucide-react";
+import { BookOpen, Bookmark, FileText, MessageSquare, PenLine } from "lucide-react";
 import Link from "next/link";
 
 const actions = [
   { href: "/write", icon: PenLine, label: "Escrever", accent: true },
   { href: "/books", icon: BookOpen, label: "Livros" },
+  { href: "/messages", icon: MessageSquare, label: "Mensagens" },
   { href: "/profile?tab=drafts", icon: FileText, label: "Rascunhos" },
   { href: "/saved", icon: Bookmark, label: "Guardados" },
 ];

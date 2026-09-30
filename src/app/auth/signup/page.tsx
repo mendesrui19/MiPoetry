@@ -63,7 +63,9 @@ export default function SignupPage() {
       }
 
       if (needsEmailConfirmation) {
-        setSuccess("Conta criada! Confirma o email que te enviámos e depois entra.");
+        setSuccess(
+          "Conta criada! Abre o email de confirmação (verifica spam) e só depois entra em «Entrar» com o mesmo email e palavra-passe."
+        );
         return;
       }
 

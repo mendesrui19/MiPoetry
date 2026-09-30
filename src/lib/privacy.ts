@@ -17,8 +17,8 @@ export const PRIVACY_OPTIONS: {
   },
   {
     id: "followers",
-    label: "Amigos",
-    shortLabel: "Amigos",
+    label: "Seguidores",
+    shortLabel: "Seguidores",
     description: "Só quem te segue",
     icon: Users,
   },

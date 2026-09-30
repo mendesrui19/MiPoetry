@@ -12,7 +12,7 @@ import { useStore } from "@/lib/store";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 type SearchTab = "poems" | "users" | "books";
 
@@ -36,6 +36,14 @@ function SearchContent() {
 
   const getTrendingHashtags = useStore((s) => s.getTrendingHashtags);
   const trendingTags = getTrendingHashtags();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("mipoetry-visited-discover", "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   return (
     <>

@@ -14,6 +14,7 @@ import {
   ChevronRight,
   FileText,
   LogOut,
+  MessageSquare,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -106,9 +107,10 @@ function ProfileContent() {
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-6">
           <MenuLink href="/saved" icon={Bookmark} label="Guardados" />
           <MenuLink href="/books" icon={BookOpen} label="Livros" />
+          <MenuLink href="/messages" icon={MessageSquare} label="Mensagens" />
           <MenuLink href="/write" icon={FileText} label="Escrever" />
         </div>
 
@@ -117,7 +119,7 @@ function ProfileContent() {
             tabs={[
               { id: "all", label: "Todos" },
               { id: "public", label: "Públicos" },
-              { id: "followers", label: "Amigos" },
+              { id: "followers", label: "Seguidores" },
               { id: "private", label: "Diário" },
               { id: "drafts", label: `Rascunhos${myDrafts.length ? ` (${myDrafts.length})` : ""}` },
             ]}

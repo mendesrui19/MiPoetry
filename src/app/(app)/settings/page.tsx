@@ -6,6 +6,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { CloudSyncStatus } from "@/components/settings/cloud-sync-status";
 import { PushSettings } from "@/components/settings/push-settings";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useCurrentUser, useStore } from "@/lib/store";
 import { RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const user = useCurrentUser();
   const updateProfile = useStore((s) => s.updateProfile);
   const resetDemo = useStore((s) => s.resetDemo);
+  const cloudMode = isSupabaseConfigured();
   const router = useRouter();
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [bio, setBio] = useState(user?.bio ?? "");
@@ -120,18 +122,20 @@ export default function SettingsPage() {
               Poemas guardados (offline)
             </Button>
           </Link>
-          <Button
-            variant="ghost"
-            className="w-full text-ink-dim"
-            onClick={() => {
-              if (confirm("Repor dados de demonstração? Perderás alterações locais.")) {
-                resetDemo();
-              }
-            }}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Repor demo
-          </Button>
+          {!cloudMode && (
+            <Button
+              variant="ghost"
+              className="w-full text-ink-dim"
+              onClick={() => {
+                if (confirm("Repor dados de demonstração? Perderás alterações locais.")) {
+                  resetDemo();
+                }
+              }}
+            >
+              <RotateCcw className="h-4 w-4" />
+              Repor demo
+            </Button>
+          )}
         </div>
       </div>
     </PageShell>
