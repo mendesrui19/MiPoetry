@@ -40,6 +40,12 @@ export function SupabaseProvider() {
         logSupabaseError("Erro ao carregar dados:", err);
         if (session?.user) {
           setCloudSession(session.user.id, true);
+          try {
+            const fallback = await fetchPublicData(supabase);
+            loadFromCloud(fallback);
+          } catch (fallbackErr) {
+            logSupabaseError("Fallback público falhou:", fallbackErr);
+          }
         } else {
           clearCloudSession();
         }

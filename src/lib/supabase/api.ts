@@ -111,7 +111,7 @@ export async function fetchPublicData(supabase: SupabaseClient) {
 
   const sectionsByBook = await fetchBookSectionsByBookIds(supabase, bookIds);
   const trendingHashtags = await fetchTrendingHashtags(supabase);
-  const messaging = await fetchMessagingData(supabase, null);
+  const messaging = await fetchMessagingDataSafe(supabase, null);
 
   return {
     users: (profilesRes.data ?? []).map(mapProfile),
@@ -237,7 +237,7 @@ export async function fetchAllData(supabase: SupabaseClient, userId: string) {
   }
 
   const trendingHashtags = await fetchTrendingHashtags(supabase);
-  const messaging = await fetchMessagingData(supabase, userId);
+  const messaging = await fetchMessagingDataSafe(supabase, userId);
 
   return {
     users: (profilesRes.data ?? []).map(mapProfile),
@@ -806,13 +806,27 @@ export async function fetchPoemForMetadata(supabase: SupabaseClient, poemId: str
   };
 }
 
+const emptyMessaging = () => ({
+  conversations: [] as Conversation[],
+  messages: [] as Message[],
+  collaborativePoems: [] as CollaborativePoem[],
+});
+
+async function fetchMessagingDataSafe(
+  supabase: SupabaseClient,
+  userId: string | null
+) {
+  try {
+    return await fetchMessagingData(supabase, userId);
+  } catch (err) {
+    console.warn("Messaging sync skipped:", err);
+    return emptyMessaging();
+  }
+}
+
 async function fetchMessagingData(supabase: SupabaseClient, userId: string | null) {
   if (!userId) {
-    return {
-      conversations: [] as Conversation[],
-      messages: [] as Message[],
-      collaborativePoems: [] as CollaborativePoem[],
-    };
+    return emptyMessaging();
   }
 
   const { data: myParts, error: partsErr } = await supabase
