@@ -1,5 +1,11 @@
-const CACHE = "mipoetry-v2";
-const PRECACHE = ["/", "/feed", "/manifest.webmanifest", "/icons/icon-192.png"];
+const CACHE = "mipoetry-v3";
+const PRECACHE = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
+
+function isHtmlRequest(request) {
+  if (request.mode === "navigate") return true;
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("text/html");
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -19,19 +25,42 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const { request } = event;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Nunca servir HTML em cache — evita React #418 após deploy (HTML velho + JS novo)
+  if (isHtmlRequest(request)) {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cached = await caches.match(request);
+        return (
+          cached ||
+          new Response("Offline — abre a app quando tiveres rede.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          })
+        );
+      })
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
+    caches.match(request).then((cached) => {
+      const network = fetch(request)
         .then((response) => {
-          if (response.ok && event.request.url.startsWith(self.location.origin)) {
+          if (response.ok && !isHtmlRequest(request)) {
             const clone = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE).then((cache) => cache.put(request, clone));
           }
           return response;
         })
         .catch(() => cached);
-      return cached || fetchPromise;
+
+      return cached || network;
     })
   );
 });

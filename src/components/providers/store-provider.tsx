@@ -36,5 +36,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  // Evita hidratar árvore pesada que só existe após sync cloud (SSR ≠ cliente)
+  return <div suppressHydrationWarning>{children}</div>;
 }
