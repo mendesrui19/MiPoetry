@@ -27,6 +27,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { jsPDF } from "jspdf";
 import { bodyToPlainText } from "@/lib/rich-text";
+import { downloadBookEpub } from "@/lib/export-epub";
 
 type BookTab = "geral" | "partes" | "poemas";
 
@@ -135,6 +136,15 @@ function BooksContent() {
     doc.save(`${b.slug}.pdf`);
   };
 
+  const exportEpub = async (bookId: string) => {
+    const b = myBooks.find((bk) => bk.id === bookId);
+    if (!b || !user) return;
+    const bookPoemsList = b.poemIds
+      .map((id) => poems.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p));
+    await downloadBookEpub(b, user, bookPoemsList);
+  };
+
   const shareBook = async (b: (typeof myBooks)[0]) => {
     const url = `${window.location.origin}/book/${b.slug}`;
     if (navigator.share) {
@@ -182,6 +192,13 @@ function BooksContent() {
                 <Share2 className="h-5 w-5 text-accent" />
               </button>
             )}
+            <button
+              onClick={() => void exportEpub(book.id)}
+              className="p-2 text-xs font-semibold text-accent"
+              aria-label="Exportar EPUB"
+            >
+              EPUB
+            </button>
             <button onClick={() => exportPdf(book.id)} className="p-2" aria-label="Exportar PDF">
               <Download className="h-5 w-5 text-accent" />
             </button>

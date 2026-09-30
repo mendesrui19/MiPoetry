@@ -3,6 +3,8 @@
 import { PageShell } from "@/components/layout/bottom-nav";
 import { QuickActions } from "@/components/layout/quick-actions";
 import { PoemCard } from "@/components/poem/poem-card";
+import { SyncDot } from "@/components/layout/sync-dot";
+import { OnboardingChecklist } from "@/components/studio/onboarding-checklist";
 import { WelcomeTour } from "@/components/studio/welcome-tour";
 import { WriterStudio } from "@/components/studio/writer-studio";
 import { Button } from "@/components/ui/button";
@@ -24,9 +26,12 @@ export default function FeedPage() {
       <header className="sticky top-0 z-40 border-b border-border-faint/80 bg-surface/70 backdrop-blur-xl px-4 py-3 safe-top min-h-[calc(var(--header-height)+var(--safe-top))]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-accent/80">
-              MiPoetry
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-accent/80">
+                MiPoetry
+              </p>
+              <SyncDot />
+            </div>
             <h1 className="font-display text-lg font-bold tracking-tight text-ink">
               {user ? "A Seguir" : "Feed"}
             </h1>
@@ -47,6 +52,7 @@ export default function FeedPage() {
         </div>
       </header>
 
+      <OnboardingChecklist />
       <WriterStudio />
 
       <QuickActions />
@@ -73,7 +79,7 @@ export default function FeedPage() {
         <div className="pt-1 pb-2">
           {poems.map((poem, i) => (
             <div key={poem.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}>
-              <PoemCard poem={poem} compact />
+              <PoemCard poem={poem} compact readContext="feed" />
             </div>
           ))}
         </div>

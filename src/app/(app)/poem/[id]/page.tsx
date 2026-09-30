@@ -3,6 +3,7 @@
 import { AppHeader, PageShell, StickyHeader } from "@/components/layout/bottom-nav";
 import { CommentSection } from "@/components/poem/comments";
 import { ExportPoemImage } from "@/components/poem/export-image";
+import { PoemImmersiveReader } from "@/components/poem/poem-immersive-reader";
 import { PoemAudioPlayer, PoemAudioRecorder } from "@/components/poem/poem-audio-recorder";
 import { PoemActions } from "@/components/poem/poem-actions";
 import { PoemAuthorMenu } from "@/components/poem/poem-author-menu";
@@ -12,24 +13,47 @@ import { getPrivacyOption, canSharePoem } from "@/lib/privacy";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { usePoem, useStore, useUser } from "@/lib/store";
-import { cn, resolvePoemStyle } from "@/lib/cn";
-import { PoemRichContent, PoemRichBlock } from "@/components/poem/poem-rich-content";
+import { PoemRichBlock } from "@/components/poem/poem-rich-content";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { ArrowLeft, Eye, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Maximize2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, use, useEffect, useMemo, useRef, useState } from "react";
 
-export default function PoemPage({ params }: { params: Promise<{ id: string }> }) {
+function PoemPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
   const poem = usePoem(id);
   const author = useUser(poem?.authorId ?? "");
   const router = useRouter();
   const currentUserId = useStore((s) => s.currentUserId);
   const getVisiblePoems = useStore((s) => s.getVisiblePoems);
+  const getPoemNavigationList = useStore((s) => s.getPoemNavigationList);
   const incrementViewCount = useStore((s) => s.incrementViewCount);
+  const users = useStore((s) => s.users);
   const [readingMode, setReadingMode] = useState(false);
   const viewedRef = useRef(false);
+
+  const ctxSource = searchParams.get("ctx") as
+    | "feed"
+    | "discover"
+    | "profile"
+    | "book"
+    | "saved"
+    | null;
+  const ctxUser = searchParams.get("user") ?? undefined;
+  const ctxBook = searchParams.get("book") ?? undefined;
+
+  const navPoems = useMemo(() => {
+    if (!poem || !ctxSource) return poem ? [poem] : [];
+    return getPoemNavigationList(poem.id, {
+      source: ctxSource,
+      username: ctxUser,
+      bookId: ctxBook,
+    });
+  }, [poem, ctxSource, ctxUser, ctxBook, getPoemNavigationList]);
+
+  const navIndex = navPoems.findIndex((p) => p.id === id);
 
   useEffect(() => {
     if (poem && !viewedRef.current) {
@@ -57,43 +81,16 @@ export default function PoemPage({ params }: { params: Promise<{ id: string }> }
     );
   }
 
-  const style = resolvePoemStyle(poem);
   const isAuthor = poem.authorId === currentUserId;
 
   if (readingMode) {
     return (
-      <div className="fixed inset-0 z-50 bg-paper safe-top safe-bottom overflow-y-auto">
-        <div className="mx-auto max-w-lg px-6 py-8 min-h-full flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={() => setReadingMode(false)}
-              className="p-2 rounded-xl text-ink-muted hover:bg-surface"
-              aria-label="Sair do modo leitura"
-            >
-              <Minimize2 className="h-5 w-5" />
-            </button>
-            {author && (
-              <span className="text-sm text-ink-dim">— {author.displayName}</span>
-            )}
-          </div>
-          <div className="flex-1 flex flex-col justify-center">
-            <h1
-              className={cn("text-3xl font-semibold mb-8 text-center", style.fontClassName)}
-              style={{ color: style.textColor }}
-            >
-              {poem.title}
-            </h1>
-            <PoemRichContent
-              body={poem.body}
-              font={poem.font}
-              theme={poem.theme}
-              textColor={poem.textColor}
-              fontSize={poem.fontSize}
-              className={cn("leading-loose", style.fontSizeClassName)}
-            />
-          </div>
-        </div>
-      </div>
+      <PoemImmersiveReader
+        poems={navPoems}
+        initialIndex={navIndex >= 0 ? navIndex : 0}
+        authorByPoemId={(p) => users.find((u) => u.id === p.authorId)}
+        onClose={() => setReadingMode(false)}
+      />
     );
   }
 
@@ -110,7 +107,7 @@ export default function PoemPage({ params }: { params: Promise<{ id: string }> }
           <button
             onClick={() => setReadingMode(true)}
             className="p-2 rounded-xl text-ink-muted hover:bg-surface"
-            aria-label="Modo leitura"
+            aria-label="Modo leitura imersivo"
           >
             <Maximize2 className="h-4 w-4" />
           </button>
@@ -189,10 +186,16 @@ export default function PoemPage({ params }: { params: Promise<{ id: string }> }
             </p>
           )}
           <ExportPoemImage poem={poem} />
-          <span className="flex items-center gap-1 text-xs text-ink-dim ml-auto">
-            <Eye className="h-3.5 w-3.5" />
-            {poem.viewCount} leituras
-          </span>
+          {navPoems.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setReadingMode(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border border-border-faint text-ink-muted hover:bg-surface"
+            >
+              <BookOpen className="h-4 w-4" />
+              Leitura imersiva
+            </button>
+          )}
         </div>
 
         {isAuthor && (
@@ -202,8 +205,7 @@ export default function PoemPage({ params }: { params: Promise<{ id: string }> }
               ? " Usa como diário pessoal."
               : poem.privacy === "followers"
                 ? " Só aparece no feed de quem te segue."
-                : " Aparece no feed de todos."}
-            {" "}
+                : " Aparece no feed de todos."}{" "}
             <Link href={`/write?edit=${poem.id}`} className="text-accent font-medium">
               Alterar privacidade
             </Link>
@@ -214,5 +216,21 @@ export default function PoemPage({ params }: { params: Promise<{ id: string }> }
       <PoemActions poem={poem} />
       <CommentSection poemId={poem.id} />
     </PageShell>
+  );
+}
+
+export default function PoemPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense
+      fallback={
+        <PageShell>
+          <div className="flex justify-center py-20">
+            <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+          </div>
+        </PageShell>
+      }
+    >
+      <PoemPageContent params={params} />
+    </Suspense>
   );
 }

@@ -150,7 +150,7 @@ export default function SavedPage() {
           }
         />
       ) : (
-        savedPoems.map((poem) => poem && <PoemCard key={poem.id} poem={poem} />)
+        savedPoems.map((poem) => poem && <PoemCard key={poem.id} poem={poem} readContext="saved" />)
       )}
     </PageShell>
   );

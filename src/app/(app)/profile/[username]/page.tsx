@@ -51,8 +51,8 @@ export default function UserProfilePage({
     .filter(Boolean);
   const otherPoems = userPoems.filter((p) => !user.pinnedPoemIds.includes(p.id));
 
-  const handleMessage = () => {
-    const convId = startConversation(user.id);
+  const handleMessage = async () => {
+    const convId = await startConversation(user.id);
     router.push(`/messages?conv=${convId}`);
   };
 
@@ -174,7 +174,7 @@ export default function UserProfilePage({
             (poem) =>
               poem && (
                 <div key={poem.id} className="relative">
-                  <PoemCard poem={poem} />
+                  <PoemCard poem={poem} readContext="profile" profileUsername={user.username} />
                   {isOwn && (
                     <button
                       onClick={() => unpinPoem(poem.id)}
@@ -194,7 +194,7 @@ export default function UserProfilePage({
       ) : (
         otherPoems.map((poem) => (
           <div key={poem.id} className="relative">
-            <PoemCard poem={poem} />
+            <PoemCard poem={poem} readContext="profile" profileUsername={user.username} />
             {isOwn && !user.pinnedPoemIds.includes(poem.id) && user.pinnedPoemIds.length < 3 && (
               <button
                 onClick={() => pinPoem(poem.id)}

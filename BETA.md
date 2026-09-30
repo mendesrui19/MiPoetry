@@ -45,7 +45,7 @@ Envia bugs, ideias ou o que não funcionou bem. Inclui se possível:
 
 ## Limitações conhecidas (beta)
 
-- Mensagens e poemas colaborativos ainda não sincronizam na cloud
+- Poemas colaborativos na cloud: versos novos sincronizam; criar colaboração a partir de zero ainda é local
 - Notificações push podem não funcionar em todos os dispositivos
 - Desafios semanais sem interface dedicada
 

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { BookOpen, PenLine, Users, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "mipoetry-welcome-v1";
@@ -90,9 +91,9 @@ export function WelcomeTour() {
               </Button>
             </>
           ) : (
-            <Button className="w-full" onClick={close}>
-              Começar a escrever
-            </Button>
+            <Link href="/write" className="w-full" onClick={close}>
+              <Button className="w-full">Começar a escrever</Button>
+            </Link>
           )}
         </div>
       </div>

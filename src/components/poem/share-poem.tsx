@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import type { Poem } from "@/lib/types";
 import { bodyToPlainText } from "@/lib/rich-text";
+import { toast } from "@/lib/toast";
 import { Check, Link2, Share2 } from "lucide-react";
 import { useState } from "react";
 
@@ -33,6 +34,7 @@ export function SharePoem({ poem }: { poem: Poem }) {
 
     await navigator.clipboard.writeText(url);
     setCopied(true);
+    toast.success("Link copiado");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -60,6 +62,7 @@ export function CopyPoemLink({ poemId }: { poemId: string }) {
     const url = `${window.location.origin}/poem/${poemId}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
+    toast.success("Link copiado");
     setTimeout(() => setCopied(false), 2000);
   };
 

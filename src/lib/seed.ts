@@ -505,5 +505,6 @@ export const SEED_STATE: Omit<AppState, "hydrated" | "currentUserId" | "cloudEna
   notificationMutes: [],
   draftVersions: [],
   offlineQueue: [],
+  trendingHashtags: [],
   isOnline: true,
 };

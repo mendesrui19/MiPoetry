@@ -1,13 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FontSize, FontStyle, Privacy, ThemeStyle, BookSection, BookSectionType } from "@/lib/types";
 import { isRichBody } from "@/lib/rich-text";
+import type { CollaborativePoem, Conversation, Message } from "@/lib/types";
 import {
   mapBookmark,
   mapCollection,
+  mapCollaborativePoem,
   mapComment,
+  mapConversation,
   mapDraft,
   mapDraftVersion,
   mapFollow,
+  mapMessage,
   mapNotification,
   mapPoem,
   mapProfile,
@@ -106,6 +110,8 @@ export async function fetchPublicData(supabase: SupabaseClient) {
   }
 
   const sectionsByBook = await fetchBookSectionsByBookIds(supabase, bookIds);
+  const trendingHashtags = await fetchTrendingHashtags(supabase);
+  const messaging = await fetchMessagingData(supabase, null);
 
   return {
     users: (profilesRes.data ?? []).map(mapProfile),
@@ -119,6 +125,8 @@ export async function fetchPublicData(supabase: SupabaseClient) {
     books: (booksRes.data ?? []).map((b) =>
       mapBook(b, poemIdsByBook.get(b.id) ?? [], sectionsByBook.get(b.id) ?? [])
     ),
+    trendingHashtags,
+    ...messaging,
   };
 }
 
@@ -228,6 +236,9 @@ export async function fetchAllData(supabase: SupabaseClient, userId: string) {
     throw errors[0];
   }
 
+  const trendingHashtags = await fetchTrendingHashtags(supabase);
+  const messaging = await fetchMessagingData(supabase, userId);
+
   return {
     users: (profilesRes.data ?? []).map(mapProfile),
     poems: (poemsRes.data ?? []).map(mapPoem),
@@ -242,6 +253,8 @@ export async function fetchAllData(supabase: SupabaseClient, userId: string) {
     ),
     notifications: (notificationsRes.data ?? []).map(mapNotification),
     draftVersions: (draftVersionsRes.data ?? []).map(mapDraftVersion),
+    trendingHashtags,
+    ...messaging,
   };
 }
 
@@ -762,4 +775,244 @@ export async function updatePoemAudioUrl(
     .single();
   if (error) throw error;
   return mapPoem(row);
+}
+
+export async function fetchTrendingHashtags(supabase: SupabaseClient, limit = 12) {
+  const { data, error } = await supabase.rpc("trending_hashtags", { limit_count: limit });
+  if (error || !data) return [];
+  return (data as { tag: string }[]).map((row) => row.tag);
+}
+
+export async function fetchPoemForMetadata(supabase: SupabaseClient, poemId: string) {
+  const { data: poem, error } = await supabase
+    .from("poems")
+    .select("id, title, body, privacy, author_id")
+    .eq("id", poemId)
+    .maybeSingle();
+  if (error || !poem || poem.privacy !== "public") return null;
+
+  const { data: author } = await supabase
+    .from("profiles")
+    .select("display_name, username")
+    .eq("id", poem.author_id)
+    .maybeSingle();
+
+  return {
+    id: poem.id,
+    title: poem.title,
+    body: poem.body,
+    authorName: author?.display_name ?? "Autor",
+    authorUsername: author?.username ?? "",
+  };
+}
+
+async function fetchMessagingData(supabase: SupabaseClient, userId: string | null) {
+  if (!userId) {
+    return {
+      conversations: [] as Conversation[],
+      messages: [] as Message[],
+      collaborativePoems: [] as CollaborativePoem[],
+    };
+  }
+
+  const { data: myParts, error: partsErr } = await supabase
+    .from("conversation_participants")
+    .select("conversation_id")
+    .eq("user_id", userId);
+  if (partsErr) throw partsErr;
+
+  const convIds = [...new Set((myParts ?? []).map((p) => p.conversation_id))];
+  let conversations: Conversation[] = [];
+  let messages: Message[] = [];
+
+  if (convIds.length > 0) {
+    const [convsRes, allPartsRes, msgsRes] = await Promise.all([
+      supabase.from("conversations").select("*").in("id", convIds).order("updated_at", { ascending: false }),
+      supabase.from("conversation_participants").select("*").in("conversation_id", convIds),
+      supabase.from("messages").select("*").in("conversation_id", convIds).order("created_at"),
+    ]);
+    if (convsRes.error) throw convsRes.error;
+    if (allPartsRes.error) throw allPartsRes.error;
+    if (msgsRes.error) throw msgsRes.error;
+
+    const partsByConv = new Map<string, string[]>();
+    for (const row of allPartsRes.data ?? []) {
+      const list = partsByConv.get(row.conversation_id) ?? [];
+      list.push(row.user_id);
+      partsByConv.set(row.conversation_id, list);
+    }
+
+    conversations = (convsRes.data ?? []).map((c) =>
+      mapConversation(c, partsByConv.get(c.id) ?? [])
+    );
+    messages = (msgsRes.data ?? []).map(mapMessage);
+  }
+
+  const { data: collabParts, error: collabPartsErr } = await supabase
+    .from("collaborative_participants")
+    .select("collab_id")
+    .eq("user_id", userId);
+  if (collabPartsErr) throw collabPartsErr;
+
+  const collabIds = [...new Set((collabParts ?? []).map((p) => p.collab_id))];
+  let collaborativePoems: CollaborativePoem[] = [];
+
+  if (collabIds.length > 0) {
+    const [collabsRes, collabRosterRes, versesRes] = await Promise.all([
+      supabase.from("collaborative_poems").select("*").in("id", collabIds),
+      supabase.from("collaborative_participants").select("*").in("collab_id", collabIds),
+      supabase.from("collaborative_verses").select("*").in("collab_id", collabIds).order("position"),
+    ]);
+    if (collabsRes.error) throw collabsRes.error;
+    if (collabRosterRes.error) throw collabRosterRes.error;
+    if (versesRes.error) throw versesRes.error;
+
+    const rosterByCollab = new Map<string, string[]>();
+    for (const row of collabRosterRes.data ?? []) {
+      const list = rosterByCollab.get(row.collab_id) ?? [];
+      list.push(row.user_id);
+      rosterByCollab.set(row.collab_id, list);
+    }
+
+    const versesByCollab = new Map<string, CollaborativePoem["verses"]>();
+    for (const row of versesRes.data ?? []) {
+      const list = versesByCollab.get(row.collab_id) ?? [];
+      list.push({
+        authorId: row.author_id,
+        text: row.body,
+        order: row.position,
+      });
+      versesByCollab.set(row.collab_id, list);
+    }
+
+    collaborativePoems = (collabsRes.data ?? []).map((c) =>
+      mapCollaborativePoem(
+        c,
+        rosterByCollab.get(c.id) ?? [],
+        versesByCollab.get(c.id) ?? []
+      )
+    );
+  }
+
+  return { conversations, messages, collaborativePoems };
+}
+
+export async function ensureConversationRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  otherUserId: string
+) {
+  const { data: myParts } = await supabase
+    .from("conversation_participants")
+    .select("conversation_id")
+    .eq("user_id", userId);
+
+  const convIds = (myParts ?? []).map((p) => p.conversation_id);
+  if (convIds.length > 0) {
+    const { data: match } = await supabase
+      .from("conversation_participants")
+      .select("conversation_id")
+      .in("conversation_id", convIds)
+      .eq("user_id", otherUserId)
+      .limit(1)
+      .maybeSingle();
+    if (match) return match.conversation_id;
+  }
+
+  const { data: conv, error: convErr } = await supabase
+    .from("conversations")
+    .insert({ updated_at: new Date().toISOString() })
+    .select("*")
+    .single();
+  if (convErr) throw convErr;
+
+  const { error: partErr } = await supabase.from("conversation_participants").insert([
+    { conversation_id: conv.id, user_id: userId },
+    { conversation_id: conv.id, user_id: otherUserId },
+  ]);
+  if (partErr) throw partErr;
+
+  return conv.id;
+}
+
+export async function sendMessageRemote(
+  supabase: SupabaseClient,
+  message: Message
+) {
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      id: message.id,
+      conversation_id: message.conversationId,
+      sender_id: message.senderId,
+      body: message.body,
+      read: message.read,
+      created_at: message.createdAt,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+
+  await supabase
+    .from("conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", message.conversationId);
+
+  return mapMessage(data);
+}
+
+export async function markConversationReadRemote(
+  supabase: SupabaseClient,
+  conversationId: string,
+  userId: string
+) {
+  const { error } = await supabase
+    .from("messages")
+    .update({ read: true })
+    .eq("conversation_id", conversationId)
+    .neq("sender_id", userId)
+    .eq("read", false);
+  if (error) throw error;
+}
+
+export async function insertCollabVerseRemote(
+  supabase: SupabaseClient,
+  collabId: string,
+  authorId: string,
+  body: string,
+  position: number,
+  verseId: string
+) {
+  const { error: verseErr } = await supabase.from("collaborative_verses").insert({
+    id: verseId,
+    collab_id: collabId,
+    author_id: authorId,
+    body,
+    position,
+  });
+  if (verseErr) throw verseErr;
+
+  await supabase
+    .from("collaborative_poems")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", collabId);
+}
+
+export async function createCollaborativePoemRemote(
+  supabase: SupabaseClient,
+  collab: CollaborativePoem
+) {
+  const { error: collabErr } = await supabase.from("collaborative_poems").insert({
+    id: collab.id,
+    title: collab.title,
+    status: collab.status,
+    created_at: collab.createdAt,
+    updated_at: collab.updatedAt,
+  });
+  if (collabErr) throw collabErr;
+
+  const { error: partErr } = await supabase.from("collaborative_participants").insert(
+    collab.participantIds.map((user_id) => ({ collab_id: collab.id, user_id }))
+  );
+  if (partErr) throw partErr;
 }

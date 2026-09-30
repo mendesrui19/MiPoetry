@@ -2,6 +2,8 @@
 
 import { AppHeader, EmptyState, PageShell } from "@/components/layout/bottom-nav";
 import { BookDiscoverCard, BookDiscoverRow } from "@/components/books/book-discover-card";
+import { SuggestedAuthorsRow } from "@/components/discover/suggested-authors-row";
+import { WeeklyChallengeCard } from "@/components/discover/weekly-challenge-card";
 import { PoemCard } from "@/components/poem/poem-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -32,7 +34,8 @@ function SearchContent() {
   const matchedUsers = query ? searchUsers(query) : [];
   const matchedBooks = query ? searchBooks(query) : [];
 
-  const trendingTags = ["mar", "cidade", "amor", "natureza", "lisboa", "noite"];
+  const getTrendingHashtags = useStore((s) => s.getTrendingHashtags);
+  const trendingTags = getTrendingHashtags();
 
   return (
     <>
@@ -62,6 +65,8 @@ function SearchContent() {
         </div>
       ) : (
         <>
+          <WeeklyChallengeCard />
+          <SuggestedAuthorsRow />
           <BookDiscoverRow books={discoverBooks} users={users} />
           <div className="px-4 pb-4">
             <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">
@@ -133,7 +138,7 @@ function SearchContent() {
             </p>
           )}
           {poems.map((poem) => (
-            <PoemCard key={poem.id} poem={poem} compact={!!query} />
+            <PoemCard key={poem.id} poem={poem} compact={!!query} readContext="discover" />
           ))}
         </div>
       )}

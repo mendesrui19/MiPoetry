@@ -18,12 +18,22 @@ export function PoemCard({
   poem,
   compact = false,
   showPrivacy = false,
+  readContext,
+  profileUsername,
 }: {
   poem: Poem;
   compact?: boolean;
   showPrivacy?: boolean;
+  readContext?: "feed" | "discover" | "profile" | "saved";
+  profileUsername?: string;
 }) {
   const author = useUser(poem.authorId);
+  const ctxQuery = readContext ? `?ctx=${readContext}` : "";
+  const profileCtx =
+    readContext === "profile" && profileUsername
+      ? `${ctxQuery ? "&" : "?"}user=${encodeURIComponent(profileUsername)}`
+      : "";
+  const poemHref = `/poem/${poem.id}${ctxQuery}${profileCtx}`;
   const currentUserId = useStore((s) => s.currentUserId);
   const toggleReaction = useStore((s) => s.toggleReaction);
   const getUserReaction = useStore((s) => s.getUserReaction);
@@ -70,7 +80,7 @@ export function PoemCard({
           </div>
         </Link>
 
-        <Link href={`/poem/${poem.id}`} className="block group active:opacity-95 transition-opacity">
+        <Link href={poemHref} className="block group active:opacity-95 transition-opacity">
           <PoemRichBlock
             title={poem.title}
             body={poem.body}
@@ -130,7 +140,7 @@ export function PoemCard({
             <span className="tabular-nums">{poem.snapCount}</span>
           </button>
           <Link
-            href={`/poem/${poem.id}#comments`}
+            href={`${poemHref}#comments`}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-ink-muted hover:bg-surface-up transition-colors"
           >
             <MessageCircle className="h-4 w-4" />

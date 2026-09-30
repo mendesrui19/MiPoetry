@@ -231,4 +231,5 @@ export interface AppState {
   hydrated: boolean;
   cloudEnabled: boolean;
   lastCloudSyncAt: string | null;
+  trendingHashtags: string[];
 }

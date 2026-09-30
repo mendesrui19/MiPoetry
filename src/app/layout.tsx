@@ -23,6 +23,7 @@ import { StoreHydration } from "@/components/providers/store-provider";
 import { SupabaseProvider } from "@/components/providers/supabase-provider";
 import { OnlineProvider } from "@/components/providers/online-provider";
 import { PushProvider } from "@/components/providers/push-provider";
+import { ToastProvider } from "@/components/ui/toast-provider";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -165,6 +166,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <OnlineProvider />
           <PushProvider />
           <ServiceWorkerRegister />
+          <ToastProvider />
           {children}
         </AppBackground>
       </body>

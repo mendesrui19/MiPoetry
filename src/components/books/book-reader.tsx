@@ -5,7 +5,7 @@ import { BookSectionsView } from "@/components/books/book-sections-view";
 import { PoemRichBlock } from "@/components/poem/poem-rich-content";
 import { Avatar } from "@/components/ui/avatar";
 import type { Book, Poem, User } from "@/lib/types";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 interface BookReaderProps {
@@ -106,6 +106,23 @@ export function BookReader({ book, author, poems }: BookReaderProps) {
               fontSize={poem.fontSize}
               className="book-reader__poem-block"
             />
+            {poems.length > 1 && index < poems.length - 1 && (
+              <div className="book-reader__poem-next">
+                <a
+                  href={`#poem-${poems[index + 1].id}`}
+                  className="book-reader__poem-next-link"
+                >
+                  <span>Poema seguinte</span>
+                  <ChevronDown className="h-4 w-4" />
+                </a>
+                <Link
+                  href={`/poem/${poems[index + 1].id}?ctx=book&book=${book.id}`}
+                  className="book-reader__poem-next-immersive"
+                >
+                  Modo leitura
+                </Link>
+              </div>
+            )}
           </section>
         ))}
       </div>

@@ -2,10 +2,13 @@ import type {
   Bookmark,
   BookmarkCollection,
   BookSection,
+  CollaborativePoem,
   Comment,
+  Conversation,
   Draft,
   DraftVersion,
   Follow,
+  Message,
   Notification,
   Poem,
   Reaction,
@@ -254,6 +257,57 @@ export function mapNotification(row: {
     commentId: row.comment_id ?? undefined,
     read: row.read,
     createdAt: row.created_at,
+  };
+}
+
+export function mapConversation(
+  row: { id: string; updated_at: string },
+  participantIds: string[]
+): Conversation {
+  return {
+    id: row.id,
+    participantIds,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapMessage(row: {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  read: boolean;
+  created_at: string;
+}): Message {
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    senderId: row.sender_id,
+    body: row.body,
+    read: row.read,
+    createdAt: row.created_at,
+  };
+}
+
+export function mapCollaborativePoem(
+  row: {
+    id: string;
+    title: string;
+    status: CollaborativePoem["status"];
+    created_at: string;
+    updated_at: string;
+  },
+  participantIds: string[],
+  verses: CollaborativePoem["verses"]
+): CollaborativePoem {
+  return {
+    id: row.id,
+    title: row.title,
+    participantIds,
+    verses,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 

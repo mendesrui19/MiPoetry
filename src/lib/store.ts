@@ -28,6 +28,8 @@ import { DEFAULT_POEM_STYLE } from "./poem-style";
 import { extractHashtags, generateId } from "./utils";
 import { bodyToPlainText, isRichBody } from "./rich-text";
 import { uniqueBookSlug } from "./slug";
+import { getDefaultActiveChallenge } from "./challenges";
+import { toast } from "./toast";
 import { isSupabaseConfigured } from "./supabase/config";
 import { createClient } from "./supabase/client";
 import * as supabaseApi from "./supabase/api";
@@ -61,15 +63,19 @@ interface StoreActions {
     privacy: Privacy;
   }) => string;
   deleteDraft: (id: string) => void;
-  publishPoem: (draftId: string | null, data: {
-    title: string;
-    body: string;
-    font: FontStyle;
-    theme: ThemeStyle;
-    textColor?: string;
-    fontSize?: FontSize;
-    privacy: Privacy;
-  }) => string | null;
+  publishPoem: (
+    draftId: string | null,
+    data: {
+      title: string;
+      body: string;
+      font: FontStyle;
+      theme: ThemeStyle;
+      textColor?: string;
+      fontSize?: FontSize;
+      privacy: Privacy;
+    },
+    extraHashtags?: string[]
+  ) => string | null;
   deletePoem: (id: string) => void;
   updatePoem: (
     id: string,
@@ -96,7 +102,12 @@ interface StoreActions {
   renameCollection: (id: string, name: string) => void;
   deleteCollection: (id: string) => void;
   sendMessage: (conversationId: string, body: string) => void;
-  startConversation: (userId: string) => string;
+  startConversation: (userId: string) => Promise<string>;
+  getTrendingHashtags: () => string[];
+  getPoemNavigationList: (
+    poemId: string,
+    ctx: { source: "feed" | "discover" | "profile" | "book" | "saved"; username?: string; bookId?: string }
+  ) => Poem[];
   markConversationRead: (conversationId: string) => void;
   getUnreadCount: () => number;
   incrementViewCount: (poemId: string) => void;
@@ -148,6 +159,7 @@ interface StoreActions {
   searchPoems: (query: string) => Poem[];
   searchBooks: (query: string) => Book[];
   searchUsers: (query: string) => User[];
+  getSuggestedAuthors: () => User[];
   resetDemo: () => void;
   cloudEnabled: boolean;
   setCloudSession: (userId: string, enabled: boolean) => void;
@@ -179,7 +191,7 @@ const cloudInitialState: AppState = {
   conversations: [],
   messages: [],
   collaborativePoems: [],
-  challenges: [],
+  challenges: [getDefaultActiveChallenge()],
   books: [],
   notifications: [],
   notificationMutes: [],
@@ -187,6 +199,7 @@ const cloudInitialState: AppState = {
   offlineQueue: [],
   isOnline: true,
   lastCloudSyncAt: null,
+  trendingHashtags: [],
 };
 
 const initialState: AppState = isSupabaseConfigured()
@@ -318,10 +331,14 @@ export const useStore = create<Store>()(
           })),
           notifications: data.notifications ?? s.notifications,
           draftVersions: data.draftVersions ?? s.draftVersions,
-          conversations: [],
-          messages: [],
-          collaborativePoems: [],
-          challenges: [],
+          conversations: data.conversations ?? s.conversations,
+          messages: data.messages ?? s.messages,
+          collaborativePoems: data.collaborativePoems ?? s.collaborativePoems,
+          challenges:
+            data.challenges && data.challenges.length > 0
+              ? data.challenges
+              : [getDefaultActiveChallenge()],
+          trendingHashtags: data.trendingHashtags ?? s.trendingHashtags,
           lastCloudSyncAt: new Date().toISOString(),
         })),
 
@@ -408,6 +425,8 @@ export const useStore = create<Store>()(
           ],
         }));
         pushNotification(userId, uid, "follow");
+        const name = get().users.find((u) => u.id === userId)?.displayName;
+        toast.success(name ? `A seguir ${name}` : "Autor seguido");
         syncCloud((supabase) =>
           supabaseApi.toggleFollowRemote(supabase, uid, userId, true)
         );
@@ -421,6 +440,7 @@ export const useStore = create<Store>()(
             (f) => !(f.followerId === uid && f.followingId === userId)
           ),
         }));
+        toast.info("Deixaste de seguir");
         syncCloud((supabase) =>
           supabaseApi.toggleFollowRemote(supabase, uid, userId, false)
         );
@@ -502,11 +522,16 @@ export const useStore = create<Store>()(
         syncCloud((supabase) => supabaseApi.deleteDraftRemote(supabase, id));
       },
 
-      publishPoem: (draftId, data) => {
+      publishPoem: (draftId, data, extraHashtags = []) => {
         const uid = get().currentUserId;
         if (!uid) return null;
         const now = new Date().toISOString();
-        const hashtags = extractHashtags(`${data.title} ${bodyToPlainText(data.body)}`);
+        const hashtags = [
+          ...new Set([
+            ...extractHashtags(`${data.title} ${bodyToPlainText(data.body)}`),
+            ...extraHashtags.map((h) => h.replace(/^#/, "").toLowerCase()).filter(Boolean),
+          ]),
+        ];
         const poem: Poem = {
           id: generateId(),
           authorId: uid,
@@ -863,9 +888,12 @@ export const useStore = create<Store>()(
               : c
           ),
         }));
+        syncCloud(async (supabase) => {
+          await supabaseApi.sendMessageRemote(supabase, msg);
+        });
       },
 
-      startConversation: (userId) => {
+      startConversation: async (userId) => {
         const uid = get().currentUserId;
         if (!uid) return "";
         const existing = get().conversations.find(
@@ -873,6 +901,31 @@ export const useStore = create<Store>()(
             c.participantIds.includes(uid) && c.participantIds.includes(userId)
         );
         if (existing) return existing.id;
+
+        const { cloudEnabled, isOnline } = get();
+        if (cloudEnabled && isOnline) {
+          const supabase = createClient();
+          const remoteId = await supabaseApi.ensureConversationRemote(
+            supabase,
+            uid,
+            userId
+          );
+          set((s) => {
+            if (s.conversations.some((c) => c.id === remoteId)) return s;
+            return {
+              conversations: [
+                {
+                  id: remoteId,
+                  participantIds: [uid, userId],
+                  updatedAt: new Date().toISOString(),
+                },
+                ...s.conversations,
+              ],
+            };
+          });
+          return remoteId;
+        }
+
         const id = generateId();
         set((s) => ({
           conversations: [
@@ -897,6 +950,9 @@ export const useStore = create<Store>()(
               : m
           ),
         }));
+        syncCloud((supabase, authorId) =>
+          supabaseApi.markConversationReadRemote(supabase, conversationId, authorId)
+        );
       },
 
       getUnreadCount: () => {
@@ -931,17 +987,29 @@ export const useStore = create<Store>()(
       addCollabVerse: (collabId, text) => {
         const uid = get().currentUserId;
         if (!uid || !text.trim()) return;
+        const verseId = generateId();
+        let position = 0;
         set((s) => ({
           collaborativePoems: s.collaborativePoems.map((c) => {
             if (c.id !== collabId) return c;
-            const order = c.verses.length;
+            position = c.verses.length;
             return {
               ...c,
-              verses: [...c.verses, { authorId: uid, text: text.trim(), order }],
+              verses: [...c.verses, { authorId: uid, text: text.trim(), order: position }],
               updatedAt: new Date().toISOString(),
             };
           }),
         }));
+        syncCloud((supabase, authorId) =>
+          supabaseApi.insertCollabVerseRemote(
+            supabase,
+            collabId,
+            authorId,
+            text.trim(),
+            position,
+            verseId
+          )
+        );
       },
 
       createBook: (title, description) => {
@@ -1513,6 +1581,90 @@ export const useStore = create<Store>()(
             u.username.toLowerCase().includes(q) ||
             u.displayName.toLowerCase().includes(q)
         );
+      },
+
+      getSuggestedAuthors: () => {
+        const uid = get().currentUserId;
+        const { users, poems, follows } = get();
+        const counts = new Map<string, number>();
+        for (const poem of poems) {
+          if (poem.privacy !== "public") continue;
+          counts.set(poem.authorId, (counts.get(poem.authorId) ?? 0) + 1);
+        }
+        const followingIds = new Set(
+          follows.filter((f) => f.followerId === uid).map((f) => f.followingId)
+        );
+        return users
+          .filter((u) => u.id !== uid && !followingIds.has(u.id))
+          .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0))
+          .slice(0, 8);
+      },
+
+      getTrendingHashtags: () => {
+        const { trendingHashtags, poems } = get();
+        if (trendingHashtags.length > 0) return trendingHashtags;
+        const counts = new Map<string, number>();
+        for (const poem of poems) {
+          if (poem.privacy !== "public") continue;
+          for (const raw of poem.hashtags) {
+            const tag = raw.toLowerCase().trim();
+            if (!tag) continue;
+            counts.set(tag, (counts.get(tag) ?? 0) + 1);
+          }
+        }
+        return [...counts.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, 12)
+          .map(([tag]) => tag);
+      },
+
+      getPoemNavigationList: (poemId, ctx) => {
+        const uid = get().currentUserId;
+        const state = get();
+        let list: Poem[] = [];
+
+        switch (ctx.source) {
+          case "feed":
+            list = state.getFeedFollowing();
+            break;
+          case "discover":
+            list = state.getFeedDiscover();
+            break;
+          case "profile": {
+            const user = state.users.find((u) => u.username === ctx.username);
+            if (user) {
+              list = state
+                .getVisiblePoems(uid)
+                .filter((p) => p.authorId === user.id)
+                .sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
+            }
+            break;
+          }
+          case "book": {
+            const book = state.books.find((b) => b.id === ctx.bookId);
+            if (book) {
+              list = book.poemIds
+                .map((id) => state.poems.find((p) => p.id === id))
+                .filter((p): p is Poem => Boolean(p));
+            }
+            break;
+          }
+          case "saved": {
+            const poemIds = new Set(state.bookmarks.map((b) => b.poemId));
+            list = state.poems.filter((p) => poemIds.has(p.id));
+            break;
+          }
+        }
+
+        if (!list.some((p) => p.id === poemId)) {
+          const current = state.poems.find((p) => p.id === poemId);
+          if (current) list = [current, ...list.filter((p) => p.id !== poemId)];
+        }
+
+        return list;
       },
 
       resetDemo: () => set({ ...initialState, hydrated: true }),

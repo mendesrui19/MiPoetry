@@ -12,6 +12,7 @@ function WriteContent() {
   const searchParams = useSearchParams();
   const draftId = searchParams.get("draft") ?? undefined;
   const editId = searchParams.get("edit") ?? undefined;
+  const challengeHashtag = searchParams.get("challenge") ?? undefined;
   const drafts = useStore((s) => s.drafts);
   const draft = draftId ? drafts.find((d) => d.id === draftId) : undefined;
   const poem = usePoem(editId ?? "");
@@ -36,6 +37,7 @@ function WriteContent() {
   return (
     <PoemEditor
       draftId={draftId}
+      challengeHashtag={challengeHashtag}
       initial={
         draft
           ? {
