@@ -30,10 +30,16 @@ Escritores de exemplo já na plataforma — palavra-passe: `teste123456`
 
 | Utilizador | Estilo |
 |------------|--------|
-| `inesmar` | Haiku e natureza |
+| `inesmar` | Mar e versos elegantes |
 | `tomasverso` | Verso livre urbano |
-| `luaferreira` | Melancolia e noite |
-| `zepassaro` | Experimental |
+| `luaferreira` | Romance íntimo |
+| `zepassaro` | Natureza e campo |
+| `sofiaalmeida` | Sonetos do quotidiano |
+| `miguelarruda` | Poesia de estrada |
+
+**Clássicos (perfis curados, domínio público):** `fernandopessoa`, `florbelaespanca`, `cesarioverde`
+
+Ao criares conta nova, passas a seguir automaticamente estes poetas — o **Feed** já vem com poemas reais. Se já tinhas conta, faz logout/login ou puxa para refrescar para sincronizar.
 
 ## Feedback
 

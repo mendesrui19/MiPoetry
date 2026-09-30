@@ -63,7 +63,22 @@ export function SupabaseProvider() {
       void applySession(session);
     });
 
-    return () => subscription.unsubscribe();
+    const refreshFromCloud = useStore.getState().refreshFromCloud;
+    let focusTimer: ReturnType<typeof setTimeout> | null = null;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (focusTimer) clearTimeout(focusTimer);
+      focusTimer = setTimeout(() => {
+        void refreshFromCloud().catch((err) => logSupabaseError("Refresh:", err));
+      }, 400);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
+      if (focusTimer) clearTimeout(focusTimer);
+    };
   }, [setHydrated, setCloudSession, loadFromCloud, clearCloudSession]);
 
   return null;

@@ -15,6 +15,7 @@ import Link from "next/link";
 export default function FeedPage() {
   const user = useCurrentUser();
   const getFeedFollowing = useStore((s) => s.getFeedFollowing);
+  const refreshFromCloud = useStore((s) => s.refreshFromCloud);
   const unread = useStore((s) => s.getUnreadNotificationCount());
 
   const poems = getFeedFollowing();
@@ -68,12 +69,21 @@ export default function FeedPage() {
           <p className="text-xs text-ink-dim mb-5">
             O feed mostra autores que segues. Para explorar a comunidade, antologias e poemas em destaque, usa Descobrir.
           </p>
-          <Link href="/search">
-            <Button>
-              <Compass className="h-4 w-4" />
-              Ir para Descobrir
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Link href="/search">
+              <Button className="w-full sm:w-auto">
+                <Compass className="h-4 w-4" />
+                Ir para Descobrir
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => void refreshFromCloud()}
+            >
+              Sincronizar feed
             </Button>
-          </Link>
+          </div>
         </div>
       ) : (
         <div className="pt-1 pb-2">

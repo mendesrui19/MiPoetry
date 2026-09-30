@@ -150,6 +150,7 @@ set search_path = public
 as $$
 declare
   uname text;
+  curated uuid;
 begin
   uname := coalesce(
     nullif(trim(new.raw_user_meta_data->>'username'), ''),
@@ -164,6 +165,26 @@ begin
   );
   insert into public.bookmark_collections (user_id, name)
   values (new.id, 'Favoritos');
+
+  foreach curated in array array[
+    'b1111111-1111-4111-8111-111111111101'::uuid,
+    'b1111111-1111-4111-8111-111111111102'::uuid,
+    'b1111111-1111-4111-8111-111111111103'::uuid,
+    'b1111111-1111-4111-8111-111111111104'::uuid,
+    'b1111111-1111-4111-8111-111111111105'::uuid,
+    'b1111111-1111-4111-8111-111111111106'::uuid,
+    'b2222222-2222-4222-8222-222222222201'::uuid,
+    'b2222222-2222-4222-8222-222222222202'::uuid,
+    'b2222222-2222-4222-8222-222222222203'::uuid
+  ]
+  loop
+    if curated <> new.id and exists (select 1 from public.profiles where id = curated) then
+      insert into public.follows (follower_id, following_id)
+      values (new.id, curated)
+      on conflict do nothing;
+    end if;
+  end loop;
+
   return new;
 end;
 $$;

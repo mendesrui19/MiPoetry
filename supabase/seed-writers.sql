@@ -56,6 +56,25 @@ select * from (values
 ) as v(instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
 where not exists (select 1 from auth.users u where u.email = v.email);
 
+-- Login email (identities em falta quebram signInWithPassword)
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, created_at, updated_at)
+select
+  gen_random_uuid(),
+  u.id,
+  u.id::text,
+  'email',
+  jsonb_build_object(
+    'sub', u.id::text,
+    'email', u.email,
+    'email_verified', true,
+    'phone_verified', false
+  ),
+  now(),
+  now()
+from auth.users u
+where u.email like '%@demo.mipoetry.pt'
+  and not exists (select 1 from auth.identities i where i.user_id = u.id);
+
 update public.profiles set style_tags = '{mar,elegante,haiku}'
 where id = 'b1111111-1111-4111-8111-111111111101';
 update public.profiles set style_tags = '{cidade,minimalista}'
