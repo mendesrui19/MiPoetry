@@ -16,7 +16,7 @@ function NavVisibility() {
 
 export function NavShell() {
   return (
-    <Suspense fallback={<BottomNav />}>
+    <Suspense fallback={null}>
       <NavVisibility />
     </Suspense>
   );

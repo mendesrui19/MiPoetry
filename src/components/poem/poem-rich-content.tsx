@@ -2,7 +2,8 @@
 
 import { cn } from "@/lib/cn";
 import { resolvePoemStyle } from "@/lib/poem-style";
-import { poemBodyToHtml } from "@/lib/rich-text";
+import { bodyToPlainText, poemBodyToHtml } from "@/lib/rich-text";
+import { useMounted } from "@/lib/use-mounted";
 import type { FontSize, FontStyle, ThemeStyle } from "@/lib/types";
 
 interface PoemRichContentProps {
@@ -28,9 +29,11 @@ export function PoemRichContent({
   className,
   style,
 }: PoemRichContentProps) {
+  const mounted = useMounted();
   const resolved =
     font && theme ? resolvePoemStyle({ font, theme, textColor, fontSize }) : null;
   const html = poemBodyToHtml(body);
+  const plainPreview = bodyToPlainText(body);
 
   return (
     <div
@@ -46,10 +49,17 @@ export function PoemRichContent({
         ...style,
       }}
     >
-      <div
-        className={cn(clipped && "poem-rich-content__clip")}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      {mounted ? (
+        <div
+          className={cn(clipped && "poem-rich-content__clip")}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <div className={cn(clipped && "poem-rich-content__clip", "whitespace-pre-wrap")}>
+          {plainPreview}
+        </div>
+      )}
     </div>
   );
 }

@@ -157,8 +157,12 @@ const fontVariables = [
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt" className={`${fontVariables} h-full antialiased`}>
-      <body className="min-h-full bg-paper text-ink">
+    <html
+      lang="pt"
+      className={`${fontVariables} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full bg-paper text-ink" suppressHydrationWarning>
         <AppBackground>
           <StoreHydration />
           <SupabaseProvider />

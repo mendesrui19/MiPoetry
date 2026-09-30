@@ -1,12 +1,14 @@
 "use client";
 
 import { useCurrentUser } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
 
 export function WriterStudio() {
   const user = useCurrentUser();
+  const mounted = useMounted();
   if (!user) return null;
 
-  const hour = new Date().getHours();
+  const hour = mounted ? new Date().getHours() : 12;
   const greeting =
     hour < 12 ? "Bom dia" : hour < 19 ? "Boa tarde" : "Boa noite";
 

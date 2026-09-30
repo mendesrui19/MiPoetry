@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useStore } from "@/lib/store";
 import { Cloud, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMounted } from "@/lib/use-mounted";
 
 export function CloudSyncStatus() {
   const cloudEnabled = useStore((s) => s.cloudEnabled);
@@ -15,6 +16,21 @@ export function CloudSyncStatus() {
   const books = useStore((s) => s.books);
   const follows = useStore((s) => s.follows);
   const [syncing, setSyncing] = useState(false);
+  const mounted = useMounted();
+  const [lastSyncLabel, setLastSyncLabel] = useState("A aguardar…");
+
+  useEffect(() => {
+    if (!mounted) return;
+    setLastSyncLabel(
+      lastCloudSyncAt
+        ? new Date(lastCloudSyncAt).toLocaleTimeString("pt-PT", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "A aguardar…"
+    );
+  }, [mounted, lastCloudSyncAt]);
 
   if (!isSupabaseConfigured()) {
     return (
@@ -38,14 +54,6 @@ export function CloudSyncStatus() {
       setSyncing(false);
     }
   };
-
-  const lastSyncLabel = lastCloudSyncAt
-    ? new Date(lastCloudSyncAt).toLocaleTimeString("pt-PT", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : "A aguardar…";
 
   return (
     <div className="glass-panel p-4 space-y-4">
